@@ -238,7 +238,7 @@ let avoid_space subspace u =
            We add [γₖ * eₖ] to [lin_combi_u]. *)
         | Null | Index _ ->
             update_combi lin_combi_u (T.symbol bvar.(k)) (unit n k) ;
-            aux (k+1) i (T.(!(bvar.(k)) <> int 0) :: gamma)
+            aux (k+1) i (T.(!(bvar.(k)) <> (T.rat Q.zero)) :: gamma)
     end
   in
 
