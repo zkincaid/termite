@@ -89,6 +89,10 @@ let to_smt dictionnary { variables = v ; polyhedron = p } =
   (* Small type cast here, to allow dictionnary to return any znum term. *)
   let f coefs j =
     T.(bigint coefs.(j) * (dictionnary v.(j) :> znum term)) in
+  let f coefs j = (* Avoid type errors for non-int vars with 0 coefficients *)
+    if Z.equal coefs.(j) Z.zero then T.(int 0)
+    else f coefs j
+  in
   let g i =
     let { rel ; constant ; coefs } = p.(i) in
     let ($) = rel_to_smt rel in
@@ -134,7 +138,7 @@ let get_invariant_metadatas llf =
   let get_invariants_root lli =
     let md = metadata lli pagai_invariant in
     match BatOption.bind md (fun md -> get_mdstring @@ operand md 0) with
-      | Some "true" -> None
+      | Some "true" -> md
       | Some _ -> assert false
       | None -> md
   in
@@ -182,6 +186,26 @@ let extract_invariants vars md =
   let poly = BatList.init (num_operands ineqs) aux_poly in
 
   (variables, poly)
+
+let extract_invariants vars md =
+  match get_mdstring @@ operand md 0 with
+  | Some "true" ->
+     let variables =
+       let v = ref [] in
+       begin try
+           Hashtbl.iter (fun _ k -> v := [k]; raise Not_found) vars;
+         with Not_found -> ()
+       end;
+       Array.of_list (!v)
+     in
+     let trivial_face =
+       { rel = Ge;
+         constant = Z.zero;
+         coefs = Array.init (Array.length variables) (fun _ -> Z.zero) }
+     in
+     (variables, [trivial_face])
+  | Some _ -> assert false
+  | None -> extract_invariants vars md
 
 (* Will iterate on the llvm function and extract pagai's invariants. *)
 let from_llfun llf =

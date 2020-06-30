@@ -42,14 +42,14 @@ let read_bitcode pagai pagai_o clang clang_o file =
       let pagai_log  = make_file c_file ".pagai.log" in
 
       let clang_command =
-        Printf.sprintf "%s %s -c -emit-llvm -o %s %s &> %s"
+        Printf.sprintf "%s %s -c -emit-llvm -o %s %s > %s"
           clang clang_o clang_file c_file clang_log
       in
       let clang_ret = Sys.command clang_command in
       if clang_ret <> 0 then raise @@ External_error(clang_command, clang_log, clang_ret) ;
 
       let pagai_command =
-        Printf.sprintf "%s %s -b %s -i %s &> %s"
+        Printf.sprintf "%s %s -b %s -i %s > %s"
           pagai pagai_o pagai_file clang_file pagai_log
       in
       let pagai_ret = Sys.command pagai_command in
@@ -269,6 +269,7 @@ let file_t =
   let c_or_bc_file =
     let pa, pp = Arg.non_dir_file in
     let pa s = match pa s with
+      | `Ok s when Filename.check_suffix s ".i"  -> `Ok (C_file s)
       | `Ok s when Filename.check_suffix s ".c"  -> `Ok (C_file s)
       | `Ok s when Filename.check_suffix s ".bc" -> `Ok (BC_file s)
       | `Ok s -> `Error (Arg.doc_quote s ^" is neither a .c file nor a .bc file")
